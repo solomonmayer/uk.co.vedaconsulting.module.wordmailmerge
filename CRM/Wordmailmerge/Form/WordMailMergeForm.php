@@ -11,6 +11,16 @@ class CRM_Wordmailmerge_Form_WordMailMergeForm extends CRM_Core_Form {
   
   static protected $_searchFormValues;
   function preProcess() {
+    $token = CRM_Core_SelectValues::contactTokens();
+    $tokens = CRM_Utils_Token::formatTokensForDisplay($token);
+    $firstTokenmrg = array();
+    $tokenMerge = array();
+    $firstTokenmrg = array_merge($tokens[0]['children'], $tokens[1]['children']);
+    $tokenMerge = array_merge($firstTokenmrg, $tokens[2]['children']);
+    foreach ($tokenMerge as $tmKey => $tmValue) {
+      $tokenMerge[$tmKey]['token_name'] =  str_replace(array('{contact.','}'),"",$tmValue['id']);
+    }
+    $this->assign('availableTokens', $tokenMerge);
     self::preProcessCommon($this);
   }
 
@@ -187,14 +197,35 @@ class CRM_Wordmailmerge_Form_WordMailMergeForm extends CRM_Core_Form {
   }
 
   function buildQuickForm() {
-    $result = civicrm_api3('MessageTemplate', 'get', array(
+    $mysql = 'SELECT id FROM veda_civicrm_wordmailmerge'; 
+    $tableCount = CRM_Core_DAO::executeQuery($mysql);
+    while ($tableCount->fetch()) {
+      $noofRows[] = $tableCount->id;
+    }
+    $rowCount = count($noofRows);
+    if($rowCount == 0){
+       $result = civicrm_api3('MessageTemplate', 'get', array(
                             'sequential' => 1,
-                            'msg_title' => "veda test template",
+														'option.limit' => 0
                           ));
-    $messageTpl = $result['values'][0]['msg_html'];
-    $this->_msg_val = $result['values'][0];
+		$msgTemplates = array();
+		foreach ($result['values'] as $msgTemplateId => $msgTemplateValues) {
+			if (empty($msgTemplateValues['workflow_id'])) {
+				$msgTemplates[$msgTemplateId] = $msgTemplateValues['msg_title'];
+			}
+		}
+      $this->add('select', 'message_template', ts('Message Template'), array('' => '- select -') + $msgTemplates);
+      CRM_Core_Session::setStatus(ts("No attach doc in your selected template."));
+    }
+  
+    $sql = " SELECT cmt.id, cmt.msg_title FROM civicrm_msg_template cmt 
+             RIGHT JOIN veda_civicrm_wordmailmerge vcw ON ( vcw.msg_template_id = cmt.id)";
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    while ($dao->fetch()) {
+      $msgTemplatesResult[$dao->id] = $dao->msg_title;
+    }
     // add form elements
-    $this->add('select', 'message_template', ts('Message Template'), array(''=> $messageTpl));
+    $this->add('select', 'message_template', ts('Message Template'), array('' => '- select -') + $msgTemplatesResult);
     $this->addButtons(array(
       array(
         'type' => 'submit',
@@ -211,29 +242,33 @@ class CRM_Wordmailmerge_Form_WordMailMergeForm extends CRM_Core_Form {
     $values = $this->_contactIds;
     $noofContact = count($this->_contactIds);
     $config = CRM_Core_Config::singleton();
-    require_once $config->extensionsDir.'\uk.co.vedaconsulting.module.wordmailmerge\tinybutstrong\tbs_class.php';
-    require_once $config->extensionsDir.'\uk.co.vedaconsulting.module.wordmailmerge\tinybutstrong-opentbs\tbs_plugin_opentbs.php';
+    require_once $config->extensionsDir.'/uk.co.vedaconsulting.module.wordmailmerge/tinybutstrong/tbs_class.php';
+    require_once $config->extensionsDir.'/uk.co.vedaconsulting.module.wordmailmerge/tinybutstrong-opentbs/tbs_plugin_opentbs.php';
 
     $TBS = new clsTinyButStrong; // new instance of TBS
     $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load the OpenTBS plugin
-    $template = $config->extensionsDir.'\uk.co.vedaconsulting.module.wordmailmerge\template.odt';
+    $template = $config->extensionsDir.'/uk.co.vedaconsulting.module.wordmailmerge/token.docx';
+    $token = CRM_Core_SelectValues::contactTokens();
+    $tokens = CRM_Utils_Token::formatTokensForDisplay($token);
+    $firstTokenmrg = array();
+    $tokenMerge = array();
+    $firstTokenmrg = array_merge($tokens[0]['children'], $tokens[1]['children']);
+    $tokenMerge = array_merge($firstTokenmrg, $tokens[2]['children']);
+    foreach ($tokenMerge as $tmKey => $tmValue) {
+      $tokenMerge[$tmKey]['token_name'] =  str_replace(array('{contact.','}'),"",$tmValue['id']);
+    }
     foreach ($values as $key => $value) {
       if($key < $noofContact){
         $selectedCID = $values[$key];
         $contact = $this->getContact($selectedCID);
-        $vars[$key]['DisplayName']  = $contact['display_name'];
-        $vars[$key]['ContactId']  = $contact['contact_id'];
-        $vars[$key]['StreetAddress']  = $contact['street_address'];
-        $vars[$key]['SupplementalAddress_1']  = $contact['supplemental_address_1'];
-        $vars[$key]['SupplementalAddress_2']  = $contact['supplemental_address_2'];
-        $vars[$key]['City']  = $contact['city'];
-        $vars[$key]['PostalCode']  = $contact['postal_code'];
-        $vars[$key]['CountryId']  = CRM_Core_PseudoConstant::country($contact['country_id']);
+        foreach ($tokenMerge as $atKey => $atValue) {
+            $vars[$key][$atValue['token_name']] = CRM_Utils_Token::getContactTokenReplacement($atValue['token_name'], $contact);
+        }
         $TBS->LoadTemplate($template, OPENTBS_ALREADY_UTF8);
-        $TBS->MergeBlock('a',$vars);
+        $TBS->MergeBlock('CiviCRM',$vars);
       }
     }
-    $output_file_name = 'wordmailmerge.odt';
+    $output_file_name = 'CiviCRMWordExport.docx';
     $TBS->Show(OPENTBS_DOWNLOAD, $output_file_name);
     CRM_Utils_System::civiExit();
     parent::postProcess();

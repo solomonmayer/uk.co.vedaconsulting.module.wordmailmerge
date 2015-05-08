@@ -38,3 +38,10 @@
     </tbody>
   </table>
 </div>
+    
+ {*<script type="text/javascript">
+  cj( document ).ready(function() {
+    var temp = cj('.crm-msg-template-form-block-attachment').find('.crm-accordion-header').text('Attachment(WordMailMerge)');
+    alert(temp);
+  });
+ </script>*}

@@ -233,13 +233,17 @@ class CRM_Wordmailmerge_Form_WordMailMergeForm extends CRM_Contact_Form_Task {
     $config = CRM_Core_Config::singleton();
     $msg_id = $this->_submitValues['message_template'];
     if(!empty($msg_id)){
-      $mysql =  " SELECT * FROM veda_civicrm_wordmailmerge WHERE msg_template_id = $msg_id"; 
-      $dao = CRM_Core_DAO::executeQuery($mysql);
+      $mysql =  " SELECT * FROM veda_civicrm_wordmailmerge WHERE msg_template_id = %1"; 
+      $params = array(1 => array($msg_id, 'Integer'));
+      $dao = CRM_Core_DAO::executeQuery($mysql, $params);
+      //$dao = CRM_Core_DAO::executeQuery($mysql);
       while ($dao->fetch()) {
         $fileId = $dao->file_id;
       }
-      $sql = "SELECT * FROM civicrm_file WHERE id = $fileId";
-      $dao = CRM_Core_DAO::executeQuery($sql);
+      $sql = "SELECT * FROM civicrm_file WHERE id = %1";
+      $params = array(1 => array($fileId, 'Integer'));
+      $dao = CRM_Core_DAO::executeQuery($sql, $params);
+      //$dao = CRM_Core_DAO::executeQuery($sql);
         while ($dao->fetch()) {
           $default['fileID']        = $dao->id;
           $default['mime_type']     = $dao->mime_type;

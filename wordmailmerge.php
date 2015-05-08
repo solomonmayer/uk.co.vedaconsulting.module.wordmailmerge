@@ -140,7 +140,7 @@ require_once 'CRM/Core/DAO.php';
     $templatePath = realpath(dirname(__FILE__)."/templates");
     $config = CRM_Core_Config::singleton();
 
-    if( $_GET['action'] == 'update'  ){
+    if( isset($_GET['action']) == 'update'  ){
       $msgTemplateId = $_GET['id'];
       $sql = "SELECT * FROM veda_civicrm_wordmailmerge WHERE msg_template_id = %1";
       $params = array(1 => array($msgTemplateId, 'Integer'));
@@ -167,7 +167,7 @@ require_once 'CRM/Core/DAO.php';
         $form->assign('defaults',$defaults);
       }
     }
-    if($_GET['action'] == 'delete '){
+    if( isset($_GET['action']) == 'delete '){
       $msgTemplateId = $_GET['id'];
       $sql = "SELECT * FROM veda_civicrm_wordmailmerge WHERE msg_template_id = %1";
       $params = array(1 => array($msgTemplateId, 'Integer'));

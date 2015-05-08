@@ -199,11 +199,12 @@ class CRM_Wordmailmerge_Form_WordMailMergeForm extends CRM_Contact_Form_Task {
   function buildQuickForm() {
     $mysql = 'SELECT id FROM veda_civicrm_wordmailmerge'; 
     $tableCount = CRM_Core_DAO::executeQuery($mysql);
+    $noofRows = array();
     while ($tableCount->fetch()) {
-      $noofRows[] = $tableCount->id;
+      $noofRows = $tableCount->id;
     }
     $rowCount = count($noofRows);
-    if($rowCount == 0){
+    if( $rowCount == 0){
       $this->add('select', 'message_template', ts('Message Template'), array('' => '- select -'), TRUE);
       CRM_Core_Session::setStatus(ts("No attach doc in your selected template."));
     }else{  

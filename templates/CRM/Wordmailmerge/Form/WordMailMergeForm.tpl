@@ -2,6 +2,9 @@
 
 
 {* FIELD EXAMPLE: OPTION 1 (AUTOMATIC LAYOUT) *}
+<div>
+  <h1 id="page-title" class="title"> Word Mail Merge </h1>
+</div>
 <div class="messages status no-popup">{include file="CRM/Contact/Form/Task.tpl"}</div>
 {foreach from=$elementNames item=elementName}
   <div class="crm-section">

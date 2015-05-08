@@ -3,9 +3,8 @@
   <div class="crm-msg-template-form-block-attachment">
   {if $action eq 1 || $action eq 2}
      {include file="CRM/Form/attachment.tpl"}
- {/if}
+ 
  {if $defaults}
-     {include file="CRM/Form/attachment.tpl"}
     <table>
       <tr>
         <td class="label">{ts}Current Attachment(s){/ts}</td>
@@ -30,6 +29,7 @@
           {include file="CRM/Form/attachmentjs.tpl"}
         {/if}
         </table>
+  {/if}
   {/if}
  </div>
 {* reposition the above block after #someOtherBlock *}

@@ -206,7 +206,7 @@ class CRM_Wordmailmerge_Form_WordMailMergeForm extends CRM_Contact_Form_Task {
     $rowCount = count($noofRows);
     if( $rowCount == 0){
       $this->add('select', 'message_template', ts('Message Template'), array('' => '- select -'), TRUE);
-      CRM_Core_Session::setStatus(ts("No attach doc in your selected template."));
+      CRM_Core_Session::setStatus(ts("No attachement in the template."));
     }else{  
       $sql = " SELECT cmt.id, cmt.msg_title FROM civicrm_msg_template cmt 
                RIGHT JOIN veda_civicrm_wordmailmerge vcw ON ( vcw.msg_template_id = cmt.id)";

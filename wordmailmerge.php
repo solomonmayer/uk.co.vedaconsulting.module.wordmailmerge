@@ -138,8 +138,7 @@ require_once 'CRM/Core/DAO.php';
     $form->assign('action', $action);
     $templatePath = realpath(dirname(__FILE__)."/templates");
     $config = CRM_Core_Config::singleton();
-    $edit = $_GET['action'];
-    if( $edit == 'update'  ){
+    if( $_GET['action'] == 'update'  ){
       $msgTemplateId = $_GET['id'];
       $sql = "SELECT * FROM veda_civicrm_wordmailmerge WHERE msg_template_id = %1";
       $params = array(1 => array($msgTemplateId, 'Integer'));
@@ -166,7 +165,7 @@ require_once 'CRM/Core/DAO.php';
         $form->assign('defaults',$defaults);
       }
     }
-    if($edit == 'delete '){
+    if( $_GET['action'] == 'delete '){
       $msgTemplateId = $_GET['id'];
       $sql = "SELECT * FROM veda_civicrm_wordmailmerge WHERE msg_template_id = %1";
       $params = array(1 => array($msgTemplateId, 'Integer'));
@@ -198,30 +197,42 @@ function wordmailmerge_civicrm_post( $op, $objectName, $objectId, &$objectRef ){
     $config = CRM_Core_Config::singleton();
     $uploaddir = $config->customFileUploadDir;
     $value = $_FILES['attachFile_1'];
-    $newName = CRM_Utils_File::makeFileName($value['name']);
-    $mime_type = $_FILES['attachFile_1']['type'];
-    $uploadfile = $uploaddir.$newName;
-    if (move_uploaded_file($_FILES['attachFile_1']['tmp_name'], $uploadfile)) {
-      $sql = "INSERT INTO `civicrm_file` ( mime_type, uri )
-              VALUES ( %1, %2 )";
-      $params = array(1 => array($mime_type, 'String'), 2 => array($newName, 'String'));
-      CRM_Core_DAO::executeQuery($sql, $params);
-      $query = " SELECT * FROM `civicrm_file` WHERE `uri` = %1";
-      $params = array(1 => array($newName, 'String'));
-      $dao = CRM_Core_DAO::executeQuery($query, $params);
-      while ($dao->fetch()) {
-        $msgId = $dao->id ; 
+    $fileFormat = (explode(".",$value['name']));
+    if($fileFormat[1] == 'docx' || $fileFormat[1] == 'doc' && !empty($fileFormat[0])){
+      $newName = CRM_Utils_File::makeFileName($value['name']);
+      $mime_type = $_FILES['attachFile_1']['type'];
+      $uploadfile = $uploaddir.$newName;
+      if (move_uploaded_file($_FILES['attachFile_1']['tmp_name'], $uploadfile)) {
+        $sql = "INSERT INTO `civicrm_file` ( mime_type, uri )
+                VALUES ( %1, %2 )";
+        $params = array(1 => array($mime_type, 'String'), 2 => array($newName, 'String'));
+        CRM_Core_DAO::executeQuery($sql, $params);
+        $query = " SELECT * FROM `civicrm_file` WHERE `uri` = %1";
+        $params = array(1 => array($newName, 'String'));
+        $dao = CRM_Core_DAO::executeQuery($query, $params);
+        while ($dao->fetch()) {
+          $msgId = $dao->id ; 
+        }
+        $mysql = "INSERT INTO `veda_civicrm_wordmailmerge` ( msg_template_id, file_id )
+                VALUES ( %1, %2 )";
+        $params = array(1 => array($objectId, 'Integer'), 2 => array($msgId, 'Integer'));
+        CRM_Core_DAO::executeQuery($mysql, $params);
+      } else {
+        $mysql = "DELETE FROM `veda_civicrm_wordmailmerge` WHERE msg_template_id = %1";
+        $params = array(1 => array($objectId, 'Integer'));
+        CRM_Core_DAO::executeQuery($mysql, $params);
+        CRM_Core_Session::setStatus(ts("No attach doc in your new template."));
+        CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/messageTemplates', 'reset=1'));
       }
-      $mysql = "INSERT INTO `veda_civicrm_wordmailmerge` ( msg_template_id, file_id )
-              VALUES ( %1, %2 )";
-      $params = array(1 => array($objectId, 'Integer'), 2 => array($msgId, 'Integer'));
-      CRM_Core_DAO::executeQuery($mysql, $params);
-    } else {
-      $mysql = "DELETE FROM `veda_civicrm_wordmailmerge` WHERE msg_template_id = %1";
-      $params = array(1 => array($objectId, 'Integer'));
-      CRM_Core_DAO::executeQuery($mysql, $params);
-      CRM_Core_Session::setStatus(ts("No attach doc in your new template."));
-      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/messageTemplates', 'reset=1'));
+    }else{
+      if($op == 'create' && !empty($fileFormat[0])){
+        CRM_Core_Session::setStatus(ts("Attachment file is not doc format."));
+        CRM_Utils_System::redirect(CRM_Utils_System::url("civicrm/admin/messageTemplates/add", "action=add&reset=1"));
+      }
+      if($op == 'edit' && !empty($fileFormat[0])){
+        CRM_Core_Session::setStatus(ts("Attachment file is not doc format."));
+        CRM_Utils_System::redirect(CRM_Utils_System::url("civicrm/admin/messageTemplates/add", "action=update&id=$objectId&reset=1"));
+      }
     }
   }
 }
